@@ -12,12 +12,14 @@ class HomeScreen extends StatefulWidget {
     required this.dataVersion,
     required this.onCreateReminder,
     required this.onViewId,
+    required this.onAddFirstCard,
   });
 
   final List<RegisteredId> registeredIds;
   final int dataVersion;
   final VoidCallback onCreateReminder;
   final VoidCallback onViewId;
+  final VoidCallback onAddFirstCard;
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -54,6 +56,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 (first, second) =>
                     first.nextOccurrence().compareTo(second.nextOccurrence()),
               );
+        final hasCards = widget.registeredIds.isNotEmpty;
+
         return RefreshIndicator(
           onRefresh: () async {
             setState(() => _reminders = _reminderService.getReminders());
@@ -63,52 +67,45 @@ class _HomeScreenState extends State<HomeScreen> {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(20, 18, 20, 112),
             children: [
-              Text(
-                _greeting(),
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: -.8,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                "Don't leave anything important behind.",
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
-                ),
-              ),
+              _DashboardHeader(hasCards: hasCards),
               const SizedBox(height: 28),
-              _SectionLabel(label: 'YOUR ID CARDS'),
-              const SizedBox(height: 10),
-              _IdStatusCard(
-                registeredIds: widget.registeredIds,
-                onTap: widget.onViewId,
-              ),
-              const SizedBox(height: 28),
-              _SectionLabel(label: 'NEXT REMINDER'),
-              const SizedBox(height: 10),
-              if (snapshot.connectionState == ConnectionState.waiting)
-                const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Center(child: CircularProgressIndicator()),
-                )
-              else if (reminders.isNotEmpty)
-                _NextReminderCard(reminder: reminders.first)
-              else
-                _EmptyReminderCard(onCreate: widget.onCreateReminder),
-              if (reminders.length > 1) ...[
-                const SizedBox(height: 28),
-                _SectionLabel(label: 'UPCOMING REMINDERS'),
+              if (!hasCards) ...[
+                _FirstRunCard(onAddFirstCard: widget.onAddFirstCard),
+                const SizedBox(height: 18),
+                const _PrivacyNote(),
+              ] else ...[
+                const _SectionLabel(label: 'YOUR ID CARDS'),
                 const SizedBox(height: 10),
-                ...reminders
-                    .skip(1)
-                    .take(3)
-                    .map(
-                      (reminder) => Padding(
-                        padding: const EdgeInsets.only(bottom: 10),
-                        child: _UpcomingReminderTile(reminder: reminder),
+                _IdStatusCard(
+                  registeredIds: widget.registeredIds,
+                  onTap: widget.onViewId,
+                ),
+                const SizedBox(height: 28),
+                const _SectionLabel(label: 'NEXT REMINDER'),
+                const SizedBox(height: 10),
+                if (snapshot.connectionState == ConnectionState.waiting)
+                  const Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Center(child: CircularProgressIndicator()),
+                  )
+                else if (reminders.isNotEmpty)
+                  _NextReminderCard(reminder: reminders.first)
+                else
+                  _EmptyReminderCard(onCreate: widget.onCreateReminder),
+                if (reminders.length > 1) ...[
+                  const SizedBox(height: 28),
+                  const _SectionLabel(label: 'UPCOMING REMINDERS'),
+                  const SizedBox(height: 10),
+                  ...reminders
+                      .skip(1)
+                      .take(3)
+                      .map(
+                        (reminder) => Padding(
+                          padding: const EdgeInsets.only(bottom: 10),
+                          child: _UpcomingReminderTile(reminder: reminder),
+                        ),
                       ),
-                    ),
+                ],
               ],
             ],
           ),
@@ -116,12 +113,43 @@ class _HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+}
 
-  String _greeting() {
+class _DashboardHeader extends StatelessWidget {
+  const _DashboardHeader({required this.hasCards});
+
+  final bool hasCards;
+
+  @override
+  Widget build(BuildContext context) {
     final hour = DateTime.now().hour;
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    final greeting = hour < 12
+        ? 'Good morning'
+        : hour < 18
+        ? 'Good afternoon'
+        : 'Good evening';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          greeting,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontWeight: FontWeight.w800,
+            letterSpacing: -.8,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          hasCards
+              ? 'Your cards and reminders are ready when you are.'
+              : 'Start by adding the card you want to remember.',
+          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+            height: 1.35,
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -137,6 +165,152 @@ class _SectionLabel extends StatelessWidget {
       color: Theme.of(context).colorScheme.onSurfaceVariant,
       fontWeight: FontWeight.w800,
       letterSpacing: 1.1,
+    ),
+  );
+}
+
+class _FirstRunCard extends StatelessWidget {
+  const _FirstRunCard({required this.onAddFirstCard});
+
+  final VoidCallback onAddFirstCard;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 26, 24, 24),
+        child: Column(
+          children: [
+            Container(
+              width: 86,
+              height: 86,
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: scheme.primaryContainer,
+                borderRadius: BorderRadius.circular(24),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.asset(
+                  'assets/images/app_logo.png',
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Your space is ready',
+              textAlign: TextAlign.center,
+              style: Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Add an ID card to create reminders and verify it when an alarm goes off.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: scheme.onSurfaceVariant,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 22),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: onAddFirstCard,
+                icon: const Icon(Icons.add_card_rounded),
+                label: const Text('ADD YOUR FIRST CARD'),
+              ),
+            ),
+            const SizedBox(height: 22),
+            const _SetupSteps(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SetupSteps extends StatelessWidget {
+  const _SetupSteps();
+
+  @override
+  Widget build(BuildContext context) {
+    final color = Theme.of(context).colorScheme.onSurfaceVariant;
+    const steps = [
+      (Icons.document_scanner_outlined, 'Add a card'),
+      (Icons.alarm_add_rounded, 'Set a reminder'),
+      (Icons.verified_outlined, 'Verify when ready'),
+    ];
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = (constraints.maxWidth - 16) / 3;
+        return Row(
+          children: [
+            for (var index = 0; index < steps.length; index++) ...[
+              SizedBox(
+                width: itemWidth,
+                child: Column(
+                  children: [
+                    Icon(steps[index].$1, size: 20, color: color),
+                    const SizedBox(height: 7),
+                    Text(
+                      steps[index].$2,
+                      maxLines: 2,
+                      textAlign: TextAlign.center,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w700,
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (index != steps.length - 1)
+                Expanded(
+                  child: Container(
+                    height: 1,
+                    color: Theme.of(context).dividerColor,
+                  ),
+                ),
+            ],
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _PrivacyNote extends StatelessWidget {
+  const _PrivacyNote();
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 8),
+    child: Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          Icons.lock_outline_rounded,
+          size: 18,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            'Your card details are stored only on this device.',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.35,
+            ),
+          ),
+        ),
+      ],
     ),
   );
 }
@@ -174,13 +348,17 @@ class _IdStatusCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    registeredIds.length == 1
-                        ? '1 card registered'
-                        : '${registeredIds.length} cards registered',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.w800,
+                  Expanded(
+                    child: Text(
+                      registeredIds.length == 1
+                          ? '1 card registered'
+                          : '${registeredIds.length} cards registered',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
                 ],
@@ -193,14 +371,14 @@ class _IdStatusCard extends StatelessWidget {
                 const SizedBox(height: 16),
                 const _InfoText(label: 'NFC', value: 'Linked'),
               ],
-              const SizedBox(height: 18),
+              const SizedBox(height: 10),
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
                   onPressed: onTap,
                   iconAlignment: IconAlignment.end,
                   icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-                  label: const Text('View ID'),
+                  label: const Text('Manage cards'),
                   style: TextButton.styleFrom(foregroundColor: scheme.primary),
                 ),
               ),
@@ -294,6 +472,8 @@ class _NextReminderCard extends StatelessWidget {
           const SizedBox(height: 6),
           Text(
             reminder.label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
               color: scheme.onPrimary,
               fontWeight: FontWeight.w600,
@@ -379,7 +559,7 @@ class _EmptyReminderCard extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            "Create your first ID reminder and we'll help make sure you don't leave your card behind.",
+            'Create your first reminder and we will help make sure you do not leave your card behind.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,

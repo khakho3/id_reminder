@@ -168,6 +168,7 @@ class _IdCardScreenState extends State<IdCardScreen> {
     final cards = await _storage.getRegisteredIds();
     if (!mounted) return;
     if (cards.isEmpty) {
+      widget.onRegisteredIdsChanged(cards);
       widget.onIdRemoved();
       return;
     }
@@ -246,8 +247,10 @@ class _IdCardScreenState extends State<IdCardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final hasCards = widget.registeredIds.isNotEmpty;
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 18, 20, 32),
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 40),
       children: [
         Row(
           children: [
@@ -260,60 +263,148 @@ class _IdCardScreenState extends State<IdCardScreen> {
                 ),
               ),
             ),
-            IconButton.filled(
-              tooltip: 'Add ID card',
-              onPressed: _working ? null : _addCard,
-              icon: const Icon(Icons.add_rounded),
-            ),
+            if (hasCards)
+              IconButton.filled(
+                tooltip: 'Add ID card',
+                onPressed: _working ? null : _addCard,
+                icon: const Icon(Icons.add_rounded),
+              ),
           ],
         ),
         const SizedBox(height: 6),
         Text(
-          'Scan OCR cards, link NFC cards, and choose which card each reminder verifies.',
+          hasCards
+              ? 'Scan OCR cards, link NFC cards, and choose which card each reminder verifies.'
+              : 'Add an OCR or NFC card to begin using ID Reminder.',
           style: TextStyle(
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),
         ),
         const SizedBox(height: 24),
-        ...widget.registeredIds.map(
-          (registeredId) => Padding(
-            padding: const EdgeInsets.only(bottom: 14),
-            child: _IdCardTile(
-              registeredId: registeredId,
-              isPrimary: registeredId.id == widget.registeredIds.first.id,
-              isScanningNfc: _scanningCardId == registeredId.id,
-              onLinkNfc: () => _linkNfc(registeredId),
-              onDelete: () => _deleteCard(registeredId),
+        if (!hasCards)
+          _EmptyIdCardsState(
+            working: _working,
+            onScanId: _addCard,
+            onAddNfc: _addNfcCard,
+          )
+        else ...[
+          ...widget.registeredIds.map(
+            (registeredId) => Padding(
+              padding: const EdgeInsets.only(bottom: 14),
+              child: _IdCardTile(
+                registeredId: registeredId,
+                isPrimary: registeredId.id == widget.registeredIds.first.id,
+                isScanningNfc: _scanningCardId == registeredId.id,
+                onLinkNfc: () => _linkNfc(registeredId),
+                onDelete: () => _deleteCard(registeredId),
+              ),
             ),
           ),
-        ),
-        const SizedBox(height: 12),
-        FilledButton.icon(
-          onPressed: _working ? null : _addCard,
-          icon: _working
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.document_scanner_rounded),
-          label: const Text('ADD ANOTHER ID CARD'),
-        ),
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: _working ? null : _addNfcCard,
-          icon: _working
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
-              : const Icon(Icons.nfc_rounded),
-          label: Text(_working ? 'HOLD CARD NEAR PHONE' : 'ADD NFC CARD'),
-        ),
+          const SizedBox(height: 12),
+          FilledButton.icon(
+            onPressed: _working ? null : _addCard,
+            icon: _working
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.document_scanner_rounded),
+            label: const Text('ADD ANOTHER ID CARD'),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _working ? null : _addNfcCard,
+            icon: _working
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.nfc_rounded),
+            label: Text(_working ? 'HOLD CARD NEAR PHONE' : 'ADD NFC CARD'),
+          ),
+        ],
       ],
     );
   }
+}
+
+class _EmptyIdCardsState extends StatelessWidget {
+  const _EmptyIdCardsState({
+    required this.working,
+    required this.onScanId,
+    required this.onAddNfc,
+  });
+
+  final bool working;
+  final VoidCallback onScanId;
+  final VoidCallback onAddNfc;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(26),
+      child: Column(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Icon(
+              Icons.badge_outlined,
+              color: Theme.of(context).colorScheme.primary,
+              size: 34,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            'No ID cards yet',
+            textAlign: TextAlign.center,
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Scan a school or work ID with your camera, or add an NFC card directly.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 24),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: working ? null : onScanId,
+              icon: working
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.document_scanner_rounded),
+              label: const Text('SCAN ID CARD'),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: working ? null : onAddNfc,
+              icon: const Icon(Icons.nfc_rounded),
+              label: Text(working ? 'HOLD CARD NEAR PHONE' : 'ADD NFC CARD'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 String _nfcFailureMessage(NfcScanFailureReason reason) {

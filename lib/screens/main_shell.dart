@@ -97,6 +97,15 @@ class _MainShellState extends State<MainShell> {
   }
 
   Future<void> _openEditor([Reminder? reminder]) async {
+    if (_registeredIds.isEmpty) {
+      setState(() => _selectedIndex = 2);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add an ID card before creating a reminder.'),
+        ),
+      );
+      return;
+    }
     final didSave = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => CreateReminderScreen(
@@ -115,6 +124,12 @@ class _MainShellState extends State<MainShell> {
     });
   }
 
+  void _openCards() {
+    if (_selectedIndex != 2) {
+      setState(() => _selectedIndex = 2);
+    }
+  }
+
   RegisteredId? _registeredIdForReminder(Reminder reminder) {
     if (_registeredIds.isEmpty) return null;
     final reminderCardId = reminder.registeredIdId;
@@ -131,12 +146,15 @@ class _MainShellState extends State<MainShell> {
         registeredIds: _registeredIds,
         dataVersion: _dataVersion,
         onCreateReminder: _openEditor,
-        onViewId: () => setState(() => _selectedIndex = 2),
+        onViewId: _openCards,
+        onAddFirstCard: _openCards,
       ),
       1 => RemindersScreen(
         dataVersion: _dataVersion,
+        hasRegisteredIds: _registeredIds.isNotEmpty,
         onEditReminder: _openEditor,
         onChanged: _refresh,
+        onAddIdCard: _openCards,
       ),
       2 => IdCardScreen(
         registeredIds: _registeredIds,
@@ -157,6 +175,7 @@ class _MainShellState extends State<MainShell> {
         selectedIndex: _selectedIndex,
         onDestinationSelected: (value) =>
             setState(() => _selectedIndex = value),
+        labelBehavior: NavigationDestinationLabelBehavior.onlyShowSelected,
         destinations: const [
           NavigationDestination(icon: Icon(Icons.home_rounded), label: 'Home'),
           NavigationDestination(

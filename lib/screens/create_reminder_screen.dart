@@ -35,23 +35,22 @@ class _CreateReminderScreenState extends State<CreateReminderScreen> {
   late _RepeatPreset _repeatPreset;
   late bool _vibrate;
   late bool _enabled;
-  late String _selectedRegisteredIdId;
+  String? _selectedRegisteredIdId;
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
     final reminder = widget.reminder;
-    _labelController = TextEditingController(
-      text: reminder?.label ?? 'Remember your school ID',
-    );
+    _labelController = TextEditingController(text: reminder?.label ?? '');
     _time = reminder?.time ?? const TimeOfDay(hour: 6, minute: 30);
     _repeatDays = {...?reminder?.repeatDays};
     _repeatPreset = _presetFor(_repeatDays);
     _vibrate = reminder?.vibrate ?? true;
     _enabled = reminder?.isEnabled ?? true;
     _selectedRegisteredIdId =
-        reminder?.registeredIdId ?? widget.registeredIds.first.id;
+        reminder?.registeredIdId ??
+        (widget.registeredIds.isEmpty ? null : widget.registeredIds.first.id);
     if (reminder == null) _loadDefaultVibration();
   }
 
@@ -89,6 +88,15 @@ class _CreateReminderScreenState extends State<CreateReminderScreen> {
 
   Future<void> _save() async {
     if (_saving || !_formKey.currentState!.validate()) return;
+    final selectedRegisteredIdId = _selectedRegisteredIdId;
+    if (selectedRegisteredIdId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Add an ID card before saving a reminder.'),
+        ),
+      );
+      return;
+    }
     setState(() => _saving = true);
     final existing = widget.reminder;
     final reminder = Reminder(
@@ -101,7 +109,7 @@ class _CreateReminderScreenState extends State<CreateReminderScreen> {
       vibrate: _vibrate,
       sound: 'Default Alarm',
       createdAt: existing?.createdAt ?? DateTime.now(),
-      registeredIdId: _selectedRegisteredIdId,
+      registeredIdId: selectedRegisteredIdId,
     );
 
     try {
@@ -178,6 +186,12 @@ class _CreateReminderScreenState extends State<CreateReminderScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.registeredIds.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(title: const Text('New Reminder')),
+        body: _MissingCardState(onBack: () => Navigator.of(context).pop()),
+      );
+    }
     final time = MaterialLocalizations.of(context).formatTimeOfDay(_time);
     return Scaffold(
       appBar: AppBar(
@@ -260,55 +274,71 @@ class _CreateReminderScreenState extends State<CreateReminderScreen> {
                 ],
               ),
               const SizedBox(height: 14),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: List.generate(7, (index) {
+              LayoutBuilder(
+                builder: (context, constraints) {
                   const labels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-                  final day = index + 1;
-                  final isSelected = _repeatDays.contains(day);
-                  return Semantics(
-                    label: 'Repeat ${labels[index]}',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(16),
-                      onTap: () {
-                        setState(() {
-                          _repeatPreset = _RepeatPreset.custom;
-                          if (isSelected) {
-                            _repeatDays.remove(day);
-                          } else {
-                            _repeatDays.add(day);
-                          }
-                        });
-                      },
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 160),
-                        width: 40,
-                        height: 40,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: isSelected
-                              ? Theme.of(context).colorScheme.primary
-                              : Theme.of(context).colorScheme.surface,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(
-                            color: isSelected
-                                ? Theme.of(context).colorScheme.primary
-                                : Theme.of(context).dividerColor,
+                  final spacing = constraints.maxWidth >= 330 ? 8.0 : 4.0;
+                  final daySize = ((constraints.maxWidth - (spacing * 6)) / 7)
+                      .clamp(30.0, 44.0)
+                      .toDouble();
+                  return Row(
+                    children: [
+                      for (var index = 0; index < labels.length; index++) ...[
+                        SizedBox(
+                          width: daySize,
+                          height: daySize,
+                          child: Semantics(
+                            label: 'Repeat ${labels[index]}',
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () {
+                                final day = index + 1;
+                                setState(() {
+                                  _repeatPreset = _RepeatPreset.custom;
+                                  if (_repeatDays.contains(day)) {
+                                    _repeatDays.remove(day);
+                                  } else {
+                                    _repeatDays.add(day);
+                                  }
+                                });
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 160),
+                                alignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  color: _repeatDays.contains(index + 1)
+                                      ? Theme.of(context).colorScheme.primary
+                                      : Theme.of(context).colorScheme.surface,
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: _repeatDays.contains(index + 1)
+                                        ? Theme.of(context).colorScheme.primary
+                                        : Theme.of(context).dividerColor,
+                                  ),
+                                ),
+                                child: Text(
+                                  labels[index],
+                                  style: TextStyle(
+                                    color: _repeatDays.contains(index + 1)
+                                        ? Theme.of(
+                                            context,
+                                          ).colorScheme.onPrimary
+                                        : Theme.of(
+                                            context,
+                                          ).colorScheme.onSurface,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                        child: Text(
-                          labels[index],
-                          style: TextStyle(
-                            color: isSelected
-                                ? Theme.of(context).colorScheme.onPrimary
-                                : Theme.of(context).colorScheme.onSurface,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
+                        if (index != labels.length - 1)
+                          SizedBox(width: spacing),
+                      ],
+                    ],
                   );
-                }),
+                },
               ),
               const SizedBox(height: 28),
               _SectionTitle(title: 'REMINDER NAME'),
@@ -330,6 +360,7 @@ class _CreateReminderScreenState extends State<CreateReminderScreen> {
               Card(
                 child: DropdownButtonFormField<String>(
                   initialValue: _selectedRegisteredIdId,
+                  isExpanded: true,
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
@@ -461,6 +492,59 @@ class _PresetChip extends StatelessWidget {
     label: Text(label),
     selected: selected,
     onSelected: (_) => onSelected(),
+  );
+}
+
+class _MissingCardState extends StatelessWidget {
+  const _MissingCardState({required this.onBack});
+
+  final VoidCallback onBack;
+
+  @override
+  Widget build(BuildContext context) => Center(
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 440),
+        child: Card(
+          child: Padding(
+            padding: const EdgeInsets.all(28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.badge_outlined,
+                  size: 46,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+                const SizedBox(height: 18),
+                Text(
+                  'Add an ID card first',
+                  textAlign: TextAlign.center,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'A reminder needs a card to verify when the alarm goes off.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 22),
+                FilledButton(
+                  onPressed: onBack,
+                  child: const Text('GO TO ID CARDS'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    ),
   );
 }
 

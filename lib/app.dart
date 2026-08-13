@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'core/theme/app_theme.dart';
 import 'models/registered_id.dart';
 import 'screens/main_shell.dart';
-import 'screens/welcome_screen.dart';
 import 'services/storage_service.dart';
 
 class IdReminderApp extends StatefulWidget {
@@ -77,20 +76,40 @@ class _StartupScreenState extends State<_StartupScreen> {
       future: _registeredIds,
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
+          return Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 76,
+                    height: 76,
+                    padding: const EdgeInsets.all(7),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primaryContainer,
+                      borderRadius: BorderRadius.circular(22),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        'assets/images/app_logo.png',
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  const CircularProgressIndicator(),
+                ],
+              ),
+            ),
           );
         }
-        final registeredIds = snapshot.data ?? const <RegisteredId>[];
-        if (registeredIds.isNotEmpty) {
-          return MainShell(
-            registeredIds: registeredIds,
-            onIdRemoved: _reloadRegistration,
-            onThemeModeChanged: widget.onThemeModeChanged,
-          );
-        }
-        return WelcomeScreen(
-          onRegistered: _reloadRegistration,
+        // A new installation begins inside the app shell with no saved cards
+        // or reminders. This makes the first-run experience discoverable and
+        // lets people explore the app before they decide to add a card.
+        return MainShell(
+          registeredIds: snapshot.data ?? const <RegisteredId>[],
+          onIdRemoved: _reloadRegistration,
           onThemeModeChanged: widget.onThemeModeChanged,
         );
       },

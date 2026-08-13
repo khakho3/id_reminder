@@ -141,7 +141,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await _reminders.delete(reminder.id);
     }
     await _storage.removeRegisteredId();
-    if (mounted) widget.onIdRemoved();
+    if (!mounted) return;
+    widget.onRegisteredIdsChanged(const <RegisteredId>[]);
+    widget.onIdRemoved();
   }
 
   @override
@@ -185,27 +187,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
                 const SizedBox(height: 14),
-                SegmentedButton<ThemeMode>(
-                  segments: const [
-                    ButtonSegment(
-                      value: ThemeMode.system,
-                      label: Text('System'),
-                      icon: Icon(Icons.brightness_auto_rounded),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.light,
-                      label: Text('Light'),
-                      icon: Icon(Icons.light_mode_outlined),
-                    ),
-                    ButtonSegment(
-                      value: ThemeMode.dark,
-                      label: Text('Dark'),
-                      icon: Icon(Icons.dark_mode_outlined),
-                    ),
-                  ],
-                  selected: {_themeMode},
-                  onSelectionChanged: (value) => _setTheme(value.first),
-                ),
+                _ThemePicker(value: _themeMode, onChanged: _setTheme),
               ],
             ),
           ),
@@ -284,7 +266,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             children: [
               ListTile(
                 leading: const Icon(Icons.document_scanner_outlined),
-                title: const Text('Add another ID card'),
+                title: Text(
+                  widget.registeredIds.isEmpty
+                      ? 'Add an ID card'
+                      : 'Add another ID card',
+                ),
                 subtitle: Text(
                   '${widget.registeredIds.length} saved',
                   maxLines: 1,
@@ -293,16 +279,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: _rescanning ? null : _addId,
               ),
-              const Divider(indent: 18, endIndent: 18),
-              ListTile(
-                leading: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: AppColors.danger,
+              if (widget.registeredIds.isNotEmpty) ...[
+                const Divider(indent: 18, endIndent: 18),
+                ListTile(
+                  leading: const Icon(
+                    Icons.delete_outline_rounded,
+                    color: AppColors.danger,
+                  ),
+                  title: const Text('Remove all ID cards'),
+                  trailing: const Icon(Icons.chevron_right_rounded),
+                  onTap: _rescanning ? null : _removeAllIds,
                 ),
-                title: const Text('Remove all ID cards'),
-                trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: _rescanning ? null : _removeAllIds,
-              ),
+              ],
             ],
           ),
         ),
@@ -334,5 +322,59 @@ class _SettingsSection extends StatelessWidget {
       fontWeight: FontWeight.w800,
       letterSpacing: 1.1,
     ),
+  );
+}
+
+class _ThemePicker extends StatelessWidget {
+  const _ThemePicker({required this.value, required this.onChanged});
+
+  final ThemeMode value;
+  final ValueChanged<ThemeMode> onChanged;
+
+  @override
+  Widget build(BuildContext context) => DropdownButtonFormField<ThemeMode>(
+    key: ValueKey(value),
+    initialValue: value,
+    isExpanded: true,
+    decoration: const InputDecoration(
+      border: InputBorder.none,
+      contentPadding: EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+    ),
+    items: const [
+      DropdownMenuItem(
+        value: ThemeMode.system,
+        child: _ThemeMenuItem(
+          icon: Icons.brightness_auto_rounded,
+          label: 'Use device setting',
+        ),
+      ),
+      DropdownMenuItem(
+        value: ThemeMode.light,
+        child: _ThemeMenuItem(icon: Icons.light_mode_outlined, label: 'Light'),
+      ),
+      DropdownMenuItem(
+        value: ThemeMode.dark,
+        child: _ThemeMenuItem(icon: Icons.dark_mode_outlined, label: 'Dark'),
+      ),
+    ],
+    onChanged: (mode) {
+      if (mode != null) onChanged(mode);
+    },
+  );
+}
+
+class _ThemeMenuItem extends StatelessWidget {
+  const _ThemeMenuItem({required this.icon, required this.label});
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, size: 20),
+      const SizedBox(width: 12),
+      Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
+    ],
   );
 }

@@ -149,179 +149,245 @@ class _AlarmGateScreenState extends State<AlarmGateScreen> {
         backgroundColor: AppColors.darkBackground,
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 26, 24, 32),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 20),
             child: _isVerified
                 ? _VerifiedView(onDone: () => Navigator.of(context).pop())
-                : Column(
-                    children: [
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 7,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: .09),
-                            borderRadius: BorderRadius.circular(999),
-                          ),
-                          child: const Text(
-                            'ID REMINDER',
-                            style: TextStyle(
-                              color: Color(0xFFBFDBFE),
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 1,
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final compact = constraints.maxHeight < 640;
+                      return Column(
+                        children: [
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 7,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: .09),
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: const Text(
+                                'ID REMINDER',
+                                style: TextStyle(
+                                  color: Color(0xFFBFDBFE),
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1,
+                                ),
+                              ),
                             ),
                           ),
-                        ),
-                      ),
-                      const Spacer(),
-                      Text(
-                        time,
-                        style: Theme.of(context).textTheme.displayLarge
-                            ?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 68,
-                              letterSpacing: -3,
-                            ),
-                      ),
-                      const SizedBox(height: 18),
-                      Text(
-                        widget.reminder.label.toUpperCase(),
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: .5,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Text(
-                        'Before you continue, verify ${widget.registeredId.displayName}.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: .72),
-                          fontSize: 16,
-                          height: 1.45,
-                        ),
-                      ),
-                      const SizedBox(height: 40),
-                      Container(
-                        width: 124,
-                        height: 92,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF172554),
-                          borderRadius: BorderRadius.circular(22),
-                          border: Border.all(
-                            color: const Color(0xFF60A5FA),
-                            width: 1.4,
-                          ),
-                        ),
-                        child: const Icon(
-                          Icons.badge_rounded,
-                          size: 50,
-                          color: Color(0xFFBFDBFE),
-                        ),
-                      ),
-                      const SizedBox(height: 26),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: AppColors.danger.withValues(alpha: .2),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(
-                            color: AppColors.danger.withValues(alpha: .55),
-                          ),
-                        ),
-                        child: const Text(
-                          'ID NOT VERIFIED',
-                          style: TextStyle(
-                            color: Color(0xFFFCA5A5),
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: .8,
-                          ),
-                        ),
-                      ),
-                      if (_error != null) ...[
-                        const SizedBox(height: 16),
-                        Text(
-                          _error!,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Color(0xFFFCA5A5),
-                            height: 1.35,
-                          ),
-                        ),
-                      ],
-                      const Spacer(),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.blue,
-                            foregroundColor: Colors.white,
-                          ),
-                          onPressed: _isScanning ? null : _scan,
-                          icon: _isScanning
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
+                          const SizedBox(height: 10),
+                          Expanded(
+                            child: LayoutBuilder(
+                              builder: (context, contentConstraints) {
+                                return SingleChildScrollView(
+                                  physics: const BouncingScrollPhysics(),
+                                  child: ConstrainedBox(
+                                    constraints: BoxConstraints(
+                                      minHeight: contentConstraints.maxHeight,
+                                    ),
+                                    child: Center(
+                                      child: Padding(
+                                        padding: EdgeInsets.symmetric(
+                                          vertical: compact ? 10 : 18,
+                                        ),
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              time,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .displayLarge
+                                                  ?.copyWith(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w800,
+                                                    fontSize: compact ? 52 : 68,
+                                                    letterSpacing: compact
+                                                        ? -2
+                                                        : -3,
+                                                  ),
+                                            ),
+                                            SizedBox(height: compact ? 10 : 18),
+                                            Text(
+                                              widget.reminder.label
+                                                  .toUpperCase(),
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center,
+                                              style: Theme.of(context)
+                                                  .textTheme
+                                                  .titleLarge
+                                                  ?.copyWith(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w800,
+                                                    letterSpacing: .5,
+                                                  ),
+                                            ),
+                                            const SizedBox(height: 10),
+                                            Text(
+                                              'Before you continue, verify ${widget.registeredId.displayName}.',
+                                              maxLines: 3,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                color: Colors.white.withValues(
+                                                  alpha: .72,
+                                                ),
+                                                fontSize: compact ? 14 : 16,
+                                                height: 1.4,
+                                              ),
+                                            ),
+                                            SizedBox(height: compact ? 22 : 34),
+                                            Container(
+                                              width: compact ? 108 : 124,
+                                              height: compact ? 80 : 92,
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFF172554),
+                                                borderRadius:
+                                                    BorderRadius.circular(22),
+                                                border: Border.all(
+                                                  color: const Color(
+                                                    0xFF60A5FA,
+                                                  ),
+                                                  width: 1.4,
+                                                ),
+                                              ),
+                                              child: Icon(
+                                                Icons.badge_rounded,
+                                                size: compact ? 42 : 50,
+                                                color: const Color(0xFFBFDBFE),
+                                              ),
+                                            ),
+                                            SizedBox(height: compact ? 18 : 24),
+                                            FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              child: Container(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 14,
+                                                      vertical: 8,
+                                                    ),
+                                                decoration: BoxDecoration(
+                                                  color: AppColors.danger
+                                                      .withValues(alpha: .2),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                        999,
+                                                      ),
+                                                  border: Border.all(
+                                                    color: AppColors.danger
+                                                        .withValues(alpha: .55),
+                                                  ),
+                                                ),
+                                                child: const Text(
+                                                  'ID NOT VERIFIED',
+                                                  style: TextStyle(
+                                                    color: Color(0xFFFCA5A5),
+                                                    fontWeight: FontWeight.w800,
+                                                    letterSpacing: .8,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                            if (_error != null) ...[
+                                              const SizedBox(height: 14),
+                                              Text(
+                                                _error!,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(
+                                                  color: Color(0xFFFCA5A5),
+                                                  height: 1.35,
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                )
-                              : const Icon(Icons.document_scanner_rounded),
-                          label: Text(
-                            _error == null
-                                ? 'SCAN WITH CAMERA'
-                                : 'TRY CAMERA AGAIN',
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.white,
-                            side: BorderSide(
-                              color: Colors.white.withValues(alpha: .45),
+                                );
+                              },
                             ),
                           ),
-                          onPressed: _isScanningNfc ? null : _scanNfc,
-                          icon: _isScanningNfc
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: Colors.white,
-                                  ),
-                                )
-                              : const Icon(Icons.nfc_rounded),
-                          label: Text(
-                            widget.registeredId.hasNfc
-                                ? 'TAP NFC CARD'
-                                : 'NFC NOT LINKED',
+                          SizedBox(height: compact ? 8 : 14),
+                          SizedBox(
+                            width: double.infinity,
+                            child: FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                backgroundColor: AppColors.blue,
+                                foregroundColor: Colors.white,
+                              ),
+                              onPressed: _isScanning ? null : _scan,
+                              icon: _isScanning
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.document_scanner_rounded),
+                              label: Text(
+                                _error == null
+                                    ? 'SCAN WITH CAMERA'
+                                    : 'TRY CAMERA AGAIN',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'The alarm sound stops only after the right card verifies.',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white.withValues(alpha: .52),
-                          fontSize: 12,
-                          height: 1.35,
-                        ),
-                      ),
-                    ],
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: Colors.white,
+                                side: BorderSide(
+                                  color: Colors.white.withValues(alpha: .45),
+                                ),
+                              ),
+                              onPressed:
+                                  widget.registeredId.hasNfc && !_isScanningNfc
+                                  ? _scanNfc
+                                  : null,
+                              icon: _isScanningNfc
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: Colors.white,
+                                      ),
+                                    )
+                                  : const Icon(Icons.nfc_rounded),
+                              label: Text(
+                                widget.registeredId.hasNfc
+                                    ? 'TAP NFC CARD'
+                                    : 'NFC NOT LINKED',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                          if (!compact) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              'The alarm sound stops only after the right card verifies.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: .52),
+                                fontSize: 12,
+                                height: 1.35,
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
           ),
         ),
@@ -337,43 +403,51 @@ class _VerifiedView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 108,
-          height: 108,
-          decoration: const BoxDecoration(
-            color: AppColors.success,
-            shape: BoxShape.circle,
+    child: SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 108,
+            height: 108,
+            decoration: const BoxDecoration(
+              color: AppColors.success,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              size: 64,
+              color: Colors.white,
+            ),
           ),
-          child: const Icon(Icons.check_rounded, size: 64, color: Colors.white),
-        ),
-        const SizedBox(height: 28),
-        Text(
-          'ID VERIFIED',
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w800,
-            letterSpacing: .5,
+          const SizedBox(height: 28),
+          Text(
+            'ID VERIFIED',
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+              color: Colors.white,
+              fontWeight: FontWeight.w800,
+              letterSpacing: .5,
+            ),
           ),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          "You're good to go.\nHave a great day.",
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: Colors.white.withValues(alpha: .74),
-            fontSize: 17,
-            height: 1.5,
+          const SizedBox(height: 10),
+          Text(
+            "You're good to go.\nHave a great day.",
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .74),
+              fontSize: 17,
+              height: 1.5,
+            ),
           ),
-        ),
-        const SizedBox(height: 32),
-        SizedBox(
-          width: 180,
-          child: FilledButton(onPressed: onDone, child: const Text('DONE')),
-        ),
-      ],
+          const SizedBox(height: 32),
+          SizedBox(
+            width: 180,
+            child: FilledButton(onPressed: onDone, child: const Text('DONE')),
+          ),
+        ],
+      ),
     ),
   );
 }

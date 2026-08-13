@@ -8,13 +8,17 @@ class RemindersScreen extends StatefulWidget {
   const RemindersScreen({
     super.key,
     required this.dataVersion,
+    required this.hasRegisteredIds,
     required this.onEditReminder,
     required this.onChanged,
+    required this.onAddIdCard,
   });
 
   final int dataVersion;
+  final bool hasRegisteredIds;
   final ValueChanged<Reminder?> onEditReminder;
   final VoidCallback onChanged;
+  final VoidCallback onAddIdCard;
 
   @override
   State<RemindersScreen> createState() => _RemindersScreenState();
@@ -53,7 +57,7 @@ class _RemindersScreenState extends State<RemindersScreen> {
         icon: const Icon(Icons.delete_outline_rounded, color: AppColors.danger),
         title: const Text('Delete reminder?'),
         content: Text(
-          '“${reminder.label}” will be removed and its scheduled alarm will be cancelled.',
+          '"${reminder.label}" will be removed and its scheduled alarm will be cancelled.',
         ),
         actions: [
           TextButton(
@@ -84,12 +88,17 @@ class _RemindersScreenState extends State<RemindersScreen> {
       future: _reminders,
       builder: (context, snapshot) {
         final reminders = snapshot.data ?? const <Reminder>[];
+        final hasCards = widget.hasRegisteredIds;
         return Scaffold(
           backgroundColor: Colors.transparent,
           floatingActionButton: FloatingActionButton.extended(
-            onPressed: () => widget.onEditReminder(null),
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Add reminder'),
+            onPressed: hasCards
+                ? () => widget.onEditReminder(null)
+                : widget.onAddIdCard,
+            icon: Icon(
+              hasCards ? Icons.add_alarm_rounded : Icons.add_card_rounded,
+            ),
+            label: Text(hasCards ? 'Add reminder' : 'Add ID card'),
           ),
           body: RefreshIndicator(
             onRefresh: () async {
@@ -109,7 +118,9 @@ class _RemindersScreenState extends State<RemindersScreen> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  'Your scheduled ID checks.',
+                  hasCards
+                      ? 'Your scheduled card checks.'
+                      : 'Create reminders after you add a card.',
                   style: TextStyle(
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
@@ -120,6 +131,8 @@ class _RemindersScreenState extends State<RemindersScreen> {
                     padding: EdgeInsets.all(32),
                     child: Center(child: CircularProgressIndicator()),
                   )
+                else if (!hasCards)
+                  _NoCardsState(onAddCard: widget.onAddIdCard)
                 else if (reminders.isEmpty)
                   _EmptyState(onCreate: () => widget.onEditReminder(null))
                 else
@@ -177,14 +190,18 @@ class _ReminderCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    time,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      letterSpacing: -.6,
+                  Expanded(
+                    child: Text(
+                      time,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -.6,
+                          ),
                     ),
                   ),
-                  const Spacer(),
                   Switch(value: reminder.isEnabled, onChanged: onToggle),
                   PopupMenuButton<String>(
                     tooltip: 'Reminder options',
@@ -217,6 +234,8 @@ class _ReminderCard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 reminder.label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
                 style: Theme.of(
                   context,
                 ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
@@ -241,14 +260,18 @@ class _ReminderCard extends StatelessWidget {
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: 7),
-                  Text(
-                    'Next: ${_nextLabel(context, next)}',
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  Expanded(
+                    child: Text(
+                      'Next: ${_nextLabel(context, next)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
                   if (!reminder.isEnabled) ...[
-                    const Spacer(),
+                    const SizedBox(width: 8),
                     const Text(
                       'OFF',
                       style: TextStyle(
@@ -266,6 +289,57 @@ class _ReminderCard extends StatelessWidget {
       ),
     );
   }
+}
+
+class _NoCardsState extends StatelessWidget {
+  const _NoCardsState({required this.onAddCard});
+
+  final VoidCallback onAddCard;
+
+  @override
+  Widget build(BuildContext context) => Card(
+    child: Padding(
+      padding: const EdgeInsets.all(28),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Theme.of(context).colorScheme.primaryContainer,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.badge_outlined,
+              color: Theme.of(context).colorScheme.primary,
+              size: 30,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Add a card first',
+            style: Theme.of(
+              context,
+            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Reminders use a saved card to make sure the right card is with you.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 20),
+          FilledButton.icon(
+            onPressed: onAddCard,
+            icon: const Icon(Icons.add_card_rounded),
+            label: const Text('ADD ID CARD'),
+          ),
+        ],
+      ),
+    ),
+  );
 }
 
 class _EmptyState extends StatelessWidget {
@@ -289,7 +363,7 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            "Create your first ID reminder and we'll help make sure you don't leave your card behind.",
+            'Create your first reminder and we will help make sure you do not leave your card behind.',
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Theme.of(context).colorScheme.onSurfaceVariant,

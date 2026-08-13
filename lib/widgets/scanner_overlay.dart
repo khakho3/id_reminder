@@ -33,8 +33,8 @@ class ScannerOverlay extends StatelessWidget {
               painter: _ScannerMaskPainter(frame: frame, borderColor: color),
             ),
             Positioned(
-              left: frame.left + 24,
-              right: size.width - frame.right + 24,
+              left: frame.left + 12,
+              right: size.width - frame.right + 12,
               top: frame.top,
               height: frame.height,
               child: Center(
@@ -55,9 +55,9 @@ class ScannerOverlay extends StatelessWidget {
               ),
             ),
             Positioned(
-              left: 24,
-              right: 24,
-              top: frame.bottom + 28,
+              left: 20,
+              right: 20,
+              bottom: 16,
               child: Column(
                 children: [
                   AnimatedSwitcher(
@@ -88,6 +88,8 @@ class ScannerOverlay extends StatelessWidget {
                       statusMessage,
                       key: ValueKey(statusMessage),
                       textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 16,
@@ -116,14 +118,26 @@ class ScannerFrameGeometry {
 
   static Rect frameFor(Size size) {
     final horizontalPadding = size.width < 380 ? 24.0 : 32.0;
-    final width = math.min(size.width - (horizontalPadding * 2), 520.0);
-    final height = width / cardAspectRatio;
-    final centerY = size.height * 0.43;
-    return Rect.fromCenter(
-      center: Offset(size.width / 2, centerY),
-      width: width,
-      height: height,
+    final availableWidth = math.max(
+      120.0,
+      size.width - (horizontalPadding * 2),
     );
+    // Keep a dedicated area at the bottom for the live scan guidance. On
+    // short and landscape screens this is what prevents the frame and text
+    // from being clipped or overlapping each other.
+    final statusReserve = size.height < 500 ? 118.0 : 132.0;
+    final maxFrameHeight = math.max(90.0, size.height - statusReserve - 64);
+    final width = math.min(
+      availableWidth,
+      math.min(520.0, maxFrameHeight * cardAspectRatio),
+    );
+    final height = width / cardAspectRatio;
+    final maximumTop = math.max(
+      16.0,
+      size.height - statusReserve - height - 16,
+    );
+    final top = (size.height * .22).clamp(16.0, maximumTop).toDouble();
+    return Rect.fromLTWH((size.width - width) / 2, top, width, height);
   }
 }
 
